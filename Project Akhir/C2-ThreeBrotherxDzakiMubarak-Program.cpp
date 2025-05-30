@@ -40,23 +40,6 @@ vector<User> daftarUser = {
     {"wawan", "12345", 90000, false, 0}
 };
 
-// Fungsi utilitas berwarna
-void printHeader(const string &judul, const string &warna = CYAN) {
-    cout << warna << "==================== " << judul << " ====================" << RESET << endl;
-}
-
-void printSuccess(const string &pesan) {
-    cout << GREEN << "| " << pesan << RESET << endl;
-}
-
-void printError(const string &pesan) {
-    cout << RED << "| " << pesan << RESET << endl;
-}
-
-void printInfo(const string &pesan) {
-    cout << YELLOW << "| " << pesan << RESET << endl;
-}
-
 void suscess(string* teks){
     cout  << *teks  << endl;
 }
@@ -659,16 +642,28 @@ void lihat_Film_Non_Premium() {
 void tonton_Film_Non_Premium() {
     Tampilan_judul(dataFilmNonPremium.data(), dataFilmNonPremium.size(), false);
 
-    cout << CYAN << "| Ingin mencari film berdasarkan judul? (y/n): " << RESET;
     char cari;
-    cin >> cari;
-    cin.ignore();
+    while (true) {
+        cout << CYAN << "| Ingin mencari film berdasarkan judul? (y/n): " << RESET;
+        string input;
+        getline(cin, input);
+        // Hanya terima satu karakter y/n, tidak boleh kosong/spasi
+        if (input.length() == 1 && (tolower(input[0]) == 'y' || tolower(input[0]) == 'n')) {
+            cari = tolower(input[0]);
+            break;
+        }
+        cout << RED << "| Input tidak valid. Masukkan 'y' atau 'n'.\n" << RESET;
+    }
 
     int index = -1;
-    if (tolower(cari) == 'y') {
+    if (cari == 'y') {
         cout << CYAN << "| Masukkan kata kunci judul: " << RESET;
         string keyword;
         getline(cin, keyword);
+        if (isKosongAtauSpasi(keyword)) {
+            cout << RED << "| Kata kunci tidak boleh kosong!\n" << RESET;
+            return;
+        }
         index = cari_film_dengan_judul(dataFilmNonPremium, keyword);
         if (index == -1) {
             cout << RED << "| Film tidak ditemukan!\n" << RESET;
@@ -687,11 +682,13 @@ void tonton_Film_Non_Premium() {
     char jawab;
     while (true) {
         cout << CYAN << "| Ingin memberi rating? (y/n): " << RESET;
-        cin >> jawab;
-        cin.ignore();
-        jawab = tolower(jawab);
-        if (jawab == 'y' || jawab == 'n') break;
-        cout << RED << "| Input tidak valid. Harap masukkan 'y' atau 'n'.\n" << RESET;
+        string input;
+        getline(cin, input);
+        if (input.length() == 1 && (tolower(input[0]) == 'y' || tolower(input[0]) == 'n')) {
+            jawab = tolower(input[0]);
+            break;
+        }
+        cout << RED << "| Input tidak valid. Masukkan 'y' atau 'n'.\n" << RESET;
     }
 
     if (jawab == 'y') {
@@ -707,47 +704,89 @@ void tonton_Film_Non_Premium() {
 }
 
 void tonton_Film_Premium() {
-    Tampilan_judul(dataFilmPremium.data(), dataFilmPremium.size(), true);
+    // Gabungkan semua film (non-premium + premium, tanpa duplikat judul)
+    vector<Film> semua = dataFilmNonPremium;
+    for (const auto& f : dataFilmPremium) {
+        bool duplikat = false;
+        for (const auto& x : semua) {
+            if (x.Judul == f.Judul) {
+                duplikat = true;
+                break;
+            }
+        }
+        if (!duplikat) semua.push_back(f);
+    }
+    // Perbarui nomor urut
+    for (int i = 0; i < semua.size(); ++i) semua[i].No = i + 1;
 
-    cout << CYAN << "| Ingin mencari film berdasarkan judul? (y/n): " << RESET;
+    Tampilan_judul(semua.data(), semua.size(), true);
+
     char cari;
-    cin >> cari;
-    cin.ignore();
+    while (true) {
+        cout << CYAN << "| Ingin mencari film berdasarkan judul? (y/n): " << RESET;
+        string input;
+        getline(cin, input);
+        if (input.length() == 1 && (tolower(input[0]) == 'y' || tolower(input[0]) == 'n')) {
+            cari = tolower(input[0]);
+            break;
+        }
+        cout << RED << "| Input tidak valid. Masukkan 'y' atau 'n'.\n" << RESET;
+    }
 
     int index = -1;
-    if (tolower(cari) == 'y') {
+    if (cari == 'y') {
         cout << CYAN << "| Masukkan kata kunci judul: " << RESET;
         string keyword;
         getline(cin, keyword);
-        index = cari_film_dengan_judul(dataFilmPremium, keyword);
+        if (isKosongAtauSpasi(keyword)) {
+            cout << RED << "| Kata kunci tidak boleh kosong!\n" << RESET;
+            return;
+        }
+        index = cari_film_dengan_judul(semua, keyword);
         if (index == -1) {
             cout << RED << "| Film tidak ditemukan!\n" << RESET;
             return;
         }
-        cout << GREEN << "| Film ditemukan: " << YELLOW << dataFilmPremium[index].Judul << RESET << "\n";
+        cout << GREEN << "| Film ditemukan: " << YELLOW << semua[index].Judul << RESET << "\n";
     } else {
         cout << CYAN << "| Masukkan No film yang ingin ditonton: " << RESET;
-        int no = bacaPilihan(1, dataFilmPremium.size());
+        int no = bacaPilihan(1, semua.size());
         index = no - 1;
     }
 
-    Film &f = dataFilmPremium[index];
+    Film &f = semua[index];
     cout << GREEN << "| Menonton: " << YELLOW << f.Judul << RESET << "\n";
 
     char jawab;
     while (true) {
         cout << CYAN << "| Ingin memberi rating? (y/n): " << RESET;
-        cin >> jawab;
-        cin.ignore();
-        jawab = tolower(jawab);
-        if (jawab == 'y' || jawab == 'n') break;
-        cout << RED << "| Input tidak valid. Harap masukkan 'y' atau 'n'.\n" << RESET;
+        string input;
+        getline(cin, input);
+        if (input.length() == 1 && (tolower(input[0]) == 'y' || tolower(input[0]) == 'n')) {
+            jawab = tolower(input[0]);
+            break;
+        }
+        cout << RED << "| Input tidak valid. Masukkan 'y' atau 'n'.\n" << RESET;
     }
 
     if (jawab == 'y') {
         cout << CYAN << "| Beri rating (1 sampai 10): " << RESET;
         int rt = bacaPilihan(1, 10);
-        f.rating = (f.rating * f.jumlah_rating + rt) / (++f.jumlah_rating);
+
+        // Update rating di sumber data aslinya (non-premium dan premium)
+        bool updated = false;
+        for (auto& film : dataFilmNonPremium) {
+            if (film.Judul == f.Judul) {
+                film.rating = (film.rating * film.jumlah_rating + rt) / (++film.jumlah_rating);
+                updated = true;
+            }
+        }
+        for (auto& film : dataFilmPremium) {
+            if (film.Judul == f.Judul) {
+                film.rating = (film.rating * film.jumlah_rating + rt) / (++film.jumlah_rating);
+                updated = true;
+            }
+        }
         cout << GREEN << "| Terima kasih! Rating disimpan.\n" << RESET;
     } else {
         cout << YELLOW << "| Tidak memberi rating.\n" << RESET;
@@ -759,14 +798,9 @@ void tonton_Film_Premium() {
 void tampilkan_Film_Terlaris(Film d[], int jml) {
     vector<Film> v(d, d + jml);
 
-    // Urutkan dari rating kecil ke besar (ascending)
+    // Urutkan dari rating besar ke kecil (descending)
     sort(v.begin(), v.end(), [](const Film &a, const Film &b) {
-        return a.rating < b.rating;
-    });
-
-    // Cari film dengan rating tertinggi
-    auto it = max_element(v.begin(), v.end(), [](const Film &a, const Film &b) {
-        return a.rating < b.rating;
+        return a.rating > b.rating;
     });
 
     cout << left;
@@ -778,20 +812,12 @@ void tampilkan_Film_Terlaris(Film d[], int jml) {
          << "|\n";
     cout << "=================================================================================\n" << RESET;
 
-    // Tampilkan yang tertinggi dulu
-    if (it != v.end() && it->jumlah_rating > 0) {
-        cout << GREEN;
-        cout << "| " << setw(4) << it->No
-             << "| " << setw(30) << it->Judul
-             << "| " << setw(20) << it->Genre
-             << "| " << setw(14) << fixed << setprecision(1) << it->rating * 10 << "% |\n";
-        cout << RESET;
-    }
-
-    // Tampilkan sisanya (selain yang tertinggi)
-    for (auto &f : v) {
-        if (&f == &(*it)) continue; // skip tertinggi
-        cout << YELLOW;
+    // Tampilkan semua film, yang sudah dirating akan otomatis di atas
+    for (const auto &f : v) {
+        if (f.jumlah_rating > 0)
+            cout << GREEN;
+        else
+            cout << YELLOW;
         cout << "| " << setw(4) << f.No
              << "| " << setw(30) << f.Judul
              << "| " << setw(20) << f.Genre
@@ -808,8 +834,8 @@ void tampilkan_Film_Terlaris(Film d[], int jml) {
 }
 
 void tampilkan_Semua_Film_Terlaris() {
-    // Gabungkan non-premium dan premium tanpa duplikat judul
     vector<Film> semua = dataFilmNonPremium;
+    // Gabungkan film premium yang belum ada di non-premium (hindari duplikat judul)
     for (const auto& f : dataFilmPremium) {
         bool duplikat = false;
         for (const auto& x : semua) {
@@ -821,33 +847,49 @@ void tampilkan_Semua_Film_Terlaris() {
         if (!duplikat) semua.push_back(f);
     }
 
-    // Urutkan berdasarkan rating tertinggi (descending)
+    // Urutkan dari rating tertinggi ke terendah
     sort(semua.begin(), semua.end(), [](const Film &a, const Film &b) {
         return a.rating > b.rating;
     });
 
-    cout << MAGENTA << "=============== SEMUA FILM BERDASARKAN RATING ===============" << RESET << endl;
-    cout << CYAN 
-         << "| No  | " << setw(30) << left << "Judul Film"
-         << "| " << setw(9) << left << "Genre" 
-         << "| " << setw(10) << left << "Rating (%)" 
-         << "|" << RESET << endl;
-    cout << CYAN << "----------------------------------------------------------------" << RESET << endl;
+    // Lebar kolom
+    const int wNo = 4;
+    const int wJudul = 40;
+    const int wGenre = 12;
+    const int wRating = 12;
 
-    for (size_t i = 0; i < semua.size(); ++i) {
-        const auto &f = semua[i];
+    // Header
+    cout << MAGENTA
+         << string(wNo + wJudul + wGenre + wRating + 13, '=') << RESET << endl;
+    cout << CYAN << "| "
+         << setw(wNo) << left << "No"
+         << " | " << setw(wJudul) << left << "Judul"
+         << " | " << setw(wGenre) << left << "Genre"
+         << " | " << setw(wRating) << left << "Rating (%)"
+         << " |" << RESET << endl;
+    cout << CYAN
+         << "|" << string(wNo + 2, '-')
+         << "|" << string(wJudul + 2, '-')
+         << "|" << string(wGenre + 2, '-')
+         << "|" << string(wRating + 2, '-')
+         << "|" << RESET << endl;
+
+    // Isi tabel
+    for (const auto &f : semua) {
         cout << (f.jumlah_rating > 0 ? GREEN : YELLOW);
-        cout << "| " << setw(3) << (i + 1)
-             << " | " << setw(30) << left << f.Judul
-             << "| " << setw(9) << left << f.Genre
-             << "| ";
+        cout << "| " << setw(wNo) << left << f.No
+             << " | " << setw(wJudul) << left << f.Judul.substr(0, wJudul)
+             << " | " << setw(wGenre) << left << f.Genre.substr(0, wGenre)
+             << " | ";
         if (f.jumlah_rating > 0)
-            cout << setw(9) << fixed << setprecision(1) << f.rating * 10 << "%";
+            cout << setw(wRating - 1) << right << fixed << setprecision(1) << f.rating * 10 << "%";
         else
-            cout << setw(9) << "-";
-        cout << RESET << " |\n";
+            cout << setw(wRating - 1) << right << "-";
+        cout << " |" << RESET << endl;
     }
-    cout << MAGENTA << "===============================================================" << RESET << endl << endl;
+
+    cout << MAGENTA
+         << string(wNo + wJudul + wGenre + wRating + 13, '=') << RESET << endl << endl;
 }
 
 
@@ -856,14 +898,22 @@ void isi_saldo(User &me) {
     cout << CYAN << "================== ISI SALDO ====================\n" << RESET;
     cout << "| Saldo saat ini: " << GREEN << "Rp" << me.saldo << RESET << "\n";
     cout << "| Tambah (max 1.000.000): " << YELLOW << "Rp";
-    int x; cin >> x; cin.ignore(10000,'\n');
+
+    long long x;
+    cin >> x;
     cout << RESET;
-    if (x > 0 && me.saldo + x <= 1000000) {
-        me.saldo += x;
-        cout << GREEN << "| Saldo baru: Rp" << me.saldo << RESET << "\n";
-    } else {
+
+    if (cin.fail() || x <= 0 || x > 1000000) {
+        cin.clear(); // reset error state
+        cin.ignore(10000, '\n'); // buang input yang salah
         cout << RED << "| Input invalid atau melebihi batas!\n" << RESET;
+    } else if (me.saldo + x > 1000000) {
+        cout << RED << "| Total saldo tidak boleh lebih dari Rp1.000.000!\n" << RESET;
+    } else {
+        me.saldo += static_cast<int>(x);
+        cout << GREEN << "| Saldo baru: Rp" << me.saldo << RESET << "\n";
     }
+
     cout << CYAN << "=================================================\n\n" << RESET;
     updateUser(me);
 }
